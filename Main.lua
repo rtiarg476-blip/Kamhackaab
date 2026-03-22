@@ -1,6 +1,6 @@
---// Written by depso
---// MIT License
---// Copyright (c) 2024 Depso
+--// GazGui By Csyzen
+--// country Ukraine
+--// Made by Csyzen 2026 22 March 21:10 
 
 local ImGui = {
 	Animations = {
@@ -77,7 +77,7 @@ ImGui.NoWarnings = not IsStudio
 --// Prefabs
 function ImGui:FetchUI()
 	--// Cache check 
-	local CacheName = "DepsoImGui"
+	local CacheName = "GazGui"
 	if _G[CacheName] then
 		self:Warn("Prefabs loaded from Cache")
 		return _G[CacheName]
@@ -90,7 +90,7 @@ function ImGui:FetchUI()
 		local UIAssetId = ImGui.UIAssetId
 		UI = game:GetObjects(UIAssetId)[1]
 	else --// Studio
-		local UIName = "DepsoImGui"
+		local UIName = "GazGui"
 		UI = PlayerGui:FindFirstChild(UIName) or script.DepsoImGui
 	end
 
