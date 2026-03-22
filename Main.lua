@@ -980,6 +980,24 @@ function ImGui:ContainerClass(Frame: Frame, Class, Window)
 		Slider.Activated:Connect(MouseMove)
 		UserInputService.InputEnded:Connect(InputEnded)
 
+		--// Touch support for mobile
+		Slider.InputBegan:Connect(function(Input)
+			if Input.UserInputType ~= Enum.UserInputType.Touch then return end
+			if Config.ReadOnly then return end
+			Dragging = true
+			if MouseMoveConnection then MouseMoveConnection:Disconnect() end
+			MouseMoveConnection = UserInputService.TouchMoved:Connect(function(touch)
+				if not Dragging then return end
+				local Percentage = math.clamp((touch.Position.X - Slider.AbsolutePosition.X) / Slider.AbsoluteSize.X, 0, 1)
+				Config:SetValue(Percentage, true)
+			end)
+		end)
+		Slider.InputEnded:Connect(function(Input)
+			if Input.UserInputType ~= Enum.UserInputType.Touch then return end
+			Dragging = false
+			if MouseMoveConnection then MouseMoveConnection:Disconnect() MouseMoveConnection = nil end
+		end)
+
 		--// Update UI
 		Config:SetValue(Value)
 
