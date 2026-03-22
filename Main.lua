@@ -980,24 +980,6 @@ function ImGui:ContainerClass(Frame: Frame, Class, Window)
 		Slider.Activated:Connect(MouseMove)
 		UserInputService.InputEnded:Connect(InputEnded)
 
-		--// Touch support for mobile
-		Slider.InputBegan:Connect(function(Input)
-			if Input.UserInputType ~= Enum.UserInputType.Touch then return end
-			if Config.ReadOnly then return end
-			Dragging = true
-			if MouseMoveConnection then MouseMoveConnection:Disconnect() end
-			MouseMoveConnection = UserInputService.TouchMoved:Connect(function(touch)
-				if not Dragging then return end
-				local Percentage = math.clamp((touch.Position.X - Slider.AbsolutePosition.X) / Slider.AbsoluteSize.X, 0, 1)
-				Config:SetValue(Percentage, true)
-			end)
-		end)
-		Slider.InputEnded:Connect(function(Input)
-			if Input.UserInputType ~= Enum.UserInputType.Touch then return end
-			Dragging = false
-			if MouseMoveConnection then MouseMoveConnection:Disconnect() MouseMoveConnection = nil end
-		end)
-
 		--// Update UI
 		Config:SetValue(Value)
 
@@ -1379,37 +1361,52 @@ function ImGui:ApplyResizable(MinSize, Frame: Frame, Dragger: TextButton, Config
 
 	MinSize = MinSize or Vector2.new(160, 90)
 
-	Dragger.MouseButton1Down:Connect(function()
+	local function StartDrag(x, y)
 		if DragStart then return end
-		OrignialSize = Frame.AbsoluteSize			
-		DragStart = Vector2.new(Mouse.X, Mouse.Y)
-	end)	
+		OrignialSize = Frame.AbsoluteSize
+		DragStart = Vector2.new(x, y)
+	end
+
+	local function UpdateDrag(x, y)
+		if not DragStart then return end
+		local mouseMoved = Vector2.new(x, y) - DragStart
+		local NewSize = UDim2.fromOffset(
+			math.max(MinSize.X, OrignialSize.X + mouseMoved.X),
+			math.max(MinSize.Y, OrignialSize.Y + mouseMoved.Y)
+		)
+		Frame.Size = NewSize
+		if Config then Config.Size = NewSize end
+	end
+
+	-- Mouse
+	Dragger.MouseButton1Down:Connect(function()
+		StartDrag(Mouse.X, Mouse.Y)
+	end)
 
 	UserInputService.InputChanged:Connect(function(Input)
-		if not DragStart or Input.UserInputType ~= Enum.UserInputType.MouseMovement then 
-			return
-		end
-
-		local MousePos = Vector2.new(Mouse.X, Mouse.Y)
-		local mouseMoved = MousePos - DragStart
-
-		local NewSize = OrignialSize + mouseMoved
-		NewSize = UDim2.fromOffset(
-			math.max(MinSize.X, NewSize.X), 
-			math.max(MinSize.Y, NewSize.Y)
-		)
-
-		Frame.Size = NewSize
-		if Config then
-			Config.Size = NewSize
-		end
+		if not DragStart or Input.UserInputType ~= Enum.UserInputType.MouseMovement then return end
+		UpdateDrag(Mouse.X, Mouse.Y)
 	end)
 
 	UserInputService.InputEnded:Connect(function(Input)
 		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
 			DragStart = nil
 		end
-	end)	
+	end)
+
+	-- Touch
+	Dragger.InputBegan:Connect(function(Input)
+		if Input.UserInputType ~= Enum.UserInputType.Touch then return end
+		StartDrag(Input.Position.X, Input.Position.Y)
+	end)
+
+	UserInputService.TouchMoved:Connect(function(Input)
+		UpdateDrag(Input.Position.X, Input.Position.Y)
+	end)
+
+	UserInputService.TouchEnded:Connect(function()
+		DragStart = nil
+	end)
 end
 
 function ImGui:ConnectHover(Config)
